@@ -1,29 +1,16 @@
 import express from "express";
-import { connectToDB } from "./db/db.js";
-import { config } from "dotenv";
+
 import cors from "cors";
-import NodeCron from "node-cron";
-import { setTopEarnerUser } from "./controller/global.js";
+
 import http from "http";
-import { Server as SocketIOServer } from "socket.io";
-import { connectToS3Client } from "./utils/s3.js";
+
 import helmet from "helmet"; 
-import userRoute from "./routes/user.route.js";
-import program from "./routes/program.route.js";
-import globalRoute from "./routes/global.route.js";
-import lottery from "./routes/lottery.route.js";
-import miningRoute from "./routes/mining.route.js";
-import { initCache } from "./utils/cache.js";
-import billionaire from "./routes/billionaire.route.js";
 
-config();
+
 const app = express();
-const PORT = process.env.PORT || 80;
+const PORT =  80;
 
-// Initialize services
-initCache();
-connectToDB();
-connectToS3Client();
+
 
 // Middleware
 app.use(cors());
@@ -61,12 +48,6 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use("/user", userRoute);
-app.use("/global", globalRoute);
-app.use("/program", program);
-app.use("/lottery", lottery);
-app.use("/mining", miningRoute);
-app.use("/billionaire", billionaire);
 
 app.get("/", (req, res) => {
   return res.status(200).json({ msg: "Service is ok" });
@@ -74,30 +55,10 @@ app.get("/", (req, res) => {
 
 // Socket.IO setup
 const server = http.createServer(app);
-const io = new SocketIOServer(server);
-let userCount = 0;
 
-io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
-  userCount++;
-  io.emit("user-count", { userCount });
 
-  socket.on("disconnect", () => {
-    userCount--;
-    console.log("User disconnected. Active users:", userCount);
-    io.emit("user-count", { userCount });
-  });
-});
 
-// Schedule a cron job
-NodeCron.schedule("0 6 * * *", async () => {
-  try {
-    await setTopEarnerUser();
-    console.log("Cron job running at 6 AM");
-  } catch (error) {
-    console.error("Error in cron job:", error);
-  }
-});
+
 
 // Start server
 server.listen(PORT, () => {
